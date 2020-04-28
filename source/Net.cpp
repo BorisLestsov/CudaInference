@@ -13,11 +13,11 @@ void Net::add_layer(Layer* layer){
     layers.push_back(layer);
 }
 
-Tensor& Net::forward(Tensor& data){
-    Tensor* inter;
+Tensor<float>* Net::forward(Tensor<float>* data){
+    Tensor<float>* inter;
     for (int i = 0; i < layers.size(); ++i){
         layers[i]->forward();
 
     }
-
+    return inter;
 }

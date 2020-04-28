@@ -16,7 +16,7 @@ public:
 
     void add_layer(Layer* layer);
 
-    Tensor& forward(Tensor& data);
+    Tensor<float>* forward(Tensor<float>* data);
 
 
     std::vector<Layer*> layers;

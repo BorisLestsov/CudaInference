@@ -27,11 +27,19 @@ int main(int argc, const char** argv)
 
     
     try {
-        PPMImage* img;
-        img = readPPM(parser.retrieve<std::string>("input").c_str());
-
+        InitializeCUDA(0);
         cublasHandle_t cublas_handle;
         checkCublasErrors(cublasCreate(&cublas_handle));
+
+        PPMImage* img;
+        img = readPPM(parser.retrieve<std::string>("input").c_str());
+        int n=1, c=3, h=224, w=224;
+        float* float_data_ptr = (float*) malloc(n*c*h*w*sizeof(float));
+        uchar* uchar_ptr = (uchar*) img->data;
+        for (int i = 0; i < h*w*c; ++i){
+            float_data_ptr[i] = (float) (uchar_ptr[i]);
+        }
+
 
         Net net(cublas_handle);
         std::vector<Layer*> layers;
@@ -41,7 +49,9 @@ int main(int argc, const char** argv)
         net.add_layer(layers[0]);
         net.add_layer(layers[1]);
 
-        Tensor input, output;
+        Tensor<float>* input = new Tensor<float>({1,3,224,224});
+        Tensor<float>* output;
+        input->from_cpu(float_data_ptr);
 
         output = net.forward(input);
 

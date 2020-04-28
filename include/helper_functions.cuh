@@ -98,38 +98,40 @@ inline void _checkCublasErrors(const cublasStatus_t& status, const char* file, i
 #define checkCublasErrors(status) _checkCublasErrors(status, __FILE__, __LINE__);
 
 
-inline void InitializeCUDA(int dev){
+inline void InitializeCUDA(int dev, bool verbose=false){
     int nDevices;
 
     cudaGetDeviceCount(&nDevices);
 
     if (nDevices < 1)
         throw std::runtime_error("Could not find GPU device");
-    printf("Found %d devices:\n", nDevices);
 
-    for (int i = 0; i < nDevices; i++) {
-        cudaDeviceProp prop;
-        cudaGetDeviceProperties(&prop, i);
-        printf("Device Number: %d\n", i);
-        printf("  Device name: %s\n", prop.name);
-        printf("  Number of concurrent kernels: %d\n",
-               prop.concurrentKernels);
-        printf("  Multi Processor Count: %d\n",
-               prop.multiProcessorCount);
-        printf("  Clock Frequency (KHz): %d\n",
-               prop.clockRate);
-        printf("  Memory Clock Rate (KHz): %d\n",
-               prop.memoryClockRate);
-        printf("  Memory Bus Width (bits): %d\n",
-               prop.memoryBusWidth);
-        printf("  Peak Memory Bandwidth (GB/s): %f\n",
-               2.0*prop.memoryClockRate*(prop.memoryBusWidth/8)/1.0e6);
-        printf("  Total Global Memory (MB): %lu\n\n",
-               prop.totalGlobalMem/1024/1024);
+    if (verbose){
+        printf("Found %d devices:\n", nDevices);
+        for (int i = 0; i < nDevices; i++) {
+            cudaDeviceProp prop;
+            cudaGetDeviceProperties(&prop, i);
+            printf("Device Number: %d\n", i);
+            printf("  Device name: %s\n", prop.name);
+            printf("  Number of concurrent kernels: %d\n",
+                   prop.concurrentKernels);
+            printf("  Multi Processor Count: %d\n",
+                   prop.multiProcessorCount);
+            printf("  Clock Frequency (KHz): %d\n",
+                   prop.clockRate);
+            printf("  Memory Clock Rate (KHz): %d\n",
+                   prop.memoryClockRate);
+            printf("  Memory Bus Width (bits): %d\n",
+                   prop.memoryBusWidth);
+            printf("  Peak Memory Bandwidth (GB/s): %f\n",
+                   2.0*prop.memoryClockRate*(prop.memoryBusWidth/8)/1.0e6);
+            printf("  Total Global Memory (MB): %lu\n\n",
+                   prop.totalGlobalMem/1024/1024);
+        }
+        printf("Using GPU number %d\n", dev);
     }
-    printf("Using GPU number %d\n", dev);
+
     checkCudaErrors(cudaSetDevice(dev));
-    printf("------------------\n\n");
 }
 
 
