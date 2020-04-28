@@ -18,12 +18,12 @@ public:
     void from_cpu(T* ptr);
     T* to_cpu();
 
+    T* _ptr;
 private:
 
     int _count;
     int _ndim;
     Size _size;
-    T* _ptr;
 
 };
 
