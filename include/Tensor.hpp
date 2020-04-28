@@ -2,6 +2,7 @@
 #define CUDA_PROJ_TENSOR_CUH
 
 #include <vector>
+#include <iostream>
 
 typedef std::vector<int> Size;
 
@@ -62,7 +63,7 @@ int Tensor<T>::count()
 template<typename T>
 void Tensor<T>::from_cpu(T* ptr)
 {
-    cudaMemcpy(_ptr, ptr, _count, cudaMemcpyHostToDevice);
+    cudaMemcpy(_ptr, ptr, _count*sizeof(T), cudaMemcpyHostToDevice);
 }
 
 #endif //CUDA_PROJ_TENSOR_CUH

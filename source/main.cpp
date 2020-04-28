@@ -40,10 +40,10 @@ int main(int argc, const char** argv)
         //     float_data_ptr[i] = (float) (uchar_ptr[i]);
         // }
 
-        int n=1, c=3, h=5, w=5;
+        int n=1, c=3, h=5, w=1;
         float* float_data_ptr = (float*) malloc(n*c*h*w*sizeof(float));
         for (int i = 0; i < h*w*c; ++i){
-            float_data_ptr[i] = (float) (i);
+            float_data_ptr[i] = (float) (i+1);
         }
 
         Net net(cublas_handle);

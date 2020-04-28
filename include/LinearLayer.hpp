@@ -17,7 +17,7 @@ public:
     void forward_tmp(cublasHandle_t& cublas_handle, Tensor<float>* input);
 
 private:
-    float* _w, *_res;
+    float* _w, *_res, *_tmp;
 
 };
 
