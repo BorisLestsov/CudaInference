@@ -1,4 +1,6 @@
+#include <stdexcept>
 #include "LinearLayer.hpp"
+#include "Tensor.hpp"
 
 #include <cublas.h>
 #include <cublas_v2.h>
@@ -9,35 +11,46 @@
 #include "compute_util.cuh"
 
 
-LinearLayer::LinearLayer()
+LinearLayer::LinearLayer(cublasHandle_t& cublas_handle, const std::string& w_path):
+    cublas_handle(cublas_handle)
 {
-    int size;
-    size = 5*4;
-    cudaMalloc(&_w, size*sizeof(float));
-    thrust::device_ptr<float> thr_ptr = thrust::device_pointer_cast<float>(_w);
-    thrust::fill(thr_ptr, thr_ptr + size, 0.5f);
+    batch_size = 2;
+    input_dim = 5*5*3;
+    output_dim = 5;
 
-    size = 3*4;
-    cudaMalloc(&_res, size*sizeof(float));
-    thrust::device_ptr<float> thr_ptr2 = thrust::device_pointer_cast<float>(_res);
-    thrust::fill(thr_ptr2, thr_ptr2 + size, 0.0f);
+    _w = new Tensor<float>({output_dim, input_dim});
+    thrust::device_ptr<float> thr_ptr = thrust::device_pointer_cast<float>(_w->_ptr);
+    thrust::fill(thr_ptr, thr_ptr + _w->count(), 0.5f);
 
-    size = 3*4;
-    cudaMalloc(&_tmp, size*sizeof(float));
-    thrust::device_ptr<float> thr_ptr3 = thrust::device_pointer_cast<float>(_tmp);
-    thrust::fill(thr_ptr3, thr_ptr3 + size, 0.0f);
+    _tmp = new Tensor<float>({output_dim, batch_size});
+    _res = new Tensor<float>({batch_size, output_dim});
 }
 
-void LinearLayer::forward() {}
+LinearLayer::~LinearLayer(){
+    delete _w; 
+    delete _res; 
+    delete _tmp;
+}
 
-void LinearLayer::forward_tmp(cublasHandle_t& cublas_handle, Tensor<float>* input)
+void LinearLayer::forward() 
 {
+    //debug_ker<<<1,1>>>(_input->_ptr, 88);
+    row_major_sgemm(cublas_handle, _input->size()[0], output_dim, input_dim, _input->_ptr, _w->_ptr, _res->_ptr, _tmp->_ptr);
+}
 
-    row_major_sgemm(cublas_handle, 3, 4, 5, input->_ptr, _w, _res, _tmp);
-    cudaDeviceSynchronize();
 
-    for (int i = 0; i < 3*4; ++i)
-        debug_ker<<<1,1>>>(_res, i);
-        cudaDeviceSynchronize();
+void LinearLayer::set_input(Tensor<float>* input)
+{
+    if (input->size().size() != 2) {
+        throw std::runtime_error("not two dims in input");
+    }
+    if (input->size()[1] != input_dim) {
+        throw std::runtime_error("input dim is different");
+    }
+    _input = input;
+}
 
+Tensor<float>* LinearLayer::get_output()
+{
+    return _res;
 }

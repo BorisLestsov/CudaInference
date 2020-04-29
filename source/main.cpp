@@ -21,7 +21,7 @@ int main(int argc, const char** argv)
     try {
         parser.addArgument("--input", 1, false);
         parser.parse(argc, argv);
-    } catch (std::exception e) {
+    } catch (const std::exception& e) {
         std::cout << "Exception: " << e.what() << std::endl;
     }
 
@@ -40,36 +40,45 @@ int main(int argc, const char** argv)
         //     float_data_ptr[i] = (float) (uchar_ptr[i]);
         // }
 
-        int n=1, c=3, h=5, w=1;
+        int n=2, c=3, h=5, w=5;
         float* float_data_ptr = (float*) malloc(n*c*h*w*sizeof(float));
-        for (int i = 0; i < h*w*c; ++i){
+        for (int i = 0; i < n*h*w*c; ++i){
             float_data_ptr[i] = (float) (i+1);
         }
 
-        Net net(cublas_handle);
-        std::vector<Layer*> layers;
-        layers.push_back(new LinearLayer());
-        layers.push_back(new LinearLayer());
-
-        net.add_layer(layers[0]);
-        net.add_layer(layers[1]);
+        // Net net(cublas_handle);
+        // std::vector<Layer*> layers;
+        // layers.push_back(new LinearLayer());
+        // layers.push_back(new LinearLayer());
+        // net.add_layer(layers[0]);
+        // net.add_layer(layers[1]);
 
         Tensor<float>* input = new Tensor<float>({n, c, h, w});
         Tensor<float>* output;
         input->from_cpu(float_data_ptr);
 
+        LinearLayer* linear = new LinearLayer(cublas_handle, "kek");
 
-        LinearLayer* linear = new LinearLayer();
-        linear->forward_tmp(cublas_handle, input);
+        input->reshape({input->size()[0], input->size()[1] * input->size()[2] * input->size()[3]});
+        linear->set_input(input);
+        linear->forward();
+        output = linear->get_output();
+
+        float* cpu_result = (float*) malloc(output->count()*sizeof(float));
+        output->to_cpu(cpu_result);
+
+        for (int i = 0; i < output->count(); ++i){
+            std::cout << i << "  " << cpu_result[i] << std::endl;
+        }
 
 
         // TODO: delete all!!
 
         free(img->data);
         free(img);
-    } catch (std::exception e) {
+    } catch (const std::exception& e) {
         std::cout << "Exception: " << e.what() << std::endl;
-    } catch (std::string e) {
+    } catch (const std::string& e) {
         std::cout << "Exception: " << e << std::endl;
     }
 }

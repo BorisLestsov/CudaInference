@@ -4,20 +4,26 @@
 #include "Layer.hpp"
 #include "Tensor.hpp"
 
+#include <string>
+
 #include <cublas.h>
 #include <cublas_v2.h>
 
 
 class LinearLayer: public Layer {
 public:
-    LinearLayer();
+    LinearLayer(cublasHandle_t& cublas_handle_p, const std::string& w_path);
+    ~LinearLayer();
 
     void forward();
 
-    void forward_tmp(cublasHandle_t& cublas_handle, Tensor<float>* input);
+    void set_input(Tensor<float>* input);
+    Tensor<float>* get_output();
 
 private:
-    float* _w, *_res, *_tmp;
+    Tensor<float>* _input, *_w, *_b, *_res, *_tmp;
+    int batch_size, input_dim, output_dim;
+    cublasHandle_t& cublas_handle;
 
 };
 

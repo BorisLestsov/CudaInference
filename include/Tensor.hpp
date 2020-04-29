@@ -1,6 +1,7 @@
 #ifndef CUDA_PROJ_TENSOR_CUH
 #define CUDA_PROJ_TENSOR_CUH
 
+#include <stdexcept>
 #include <vector>
 #include <iostream>
 
@@ -15,9 +16,10 @@ public:
 
     int count();
     int ndim();
-    Size size();
+    const Size& size();
     void from_cpu(T* ptr);
-    T* to_cpu();
+    void to_cpu(T* ptr);
+    Tensor& reshape(const Size& newsize);
 
     T* _ptr;
 private:
@@ -64,6 +66,33 @@ template<typename T>
 void Tensor<T>::from_cpu(T* ptr)
 {
     cudaMemcpy(_ptr, ptr, _count*sizeof(T), cudaMemcpyHostToDevice);
+}
+
+template<typename T>
+void Tensor<T>::to_cpu(T* ptr)
+{
+    cudaMemcpy(ptr, _ptr, _count*sizeof(T), cudaMemcpyDeviceToHost);
+}
+
+template<typename T>
+const Size& Tensor<T>::size()
+{
+    return _size;
+}
+
+template<typename T>
+Tensor<T>& Tensor<T>::reshape(const Size& newsize)
+{
+    int newcount = 1;
+    for (int i = 0; i < newsize.size(); ++i) {
+        newcount *= newsize[i];
+    }
+    if (newcount != _count) {
+        throw std::runtime_error("reshape wrong size");
+    }
+    _size = newsize;
+    _ndim = _size.size();
+    return *this;
 }
 
 #endif //CUDA_PROJ_TENSOR_CUH
