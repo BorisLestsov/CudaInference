@@ -19,6 +19,7 @@ public:
 
     void set_input(Tensor<float>* input);
     Tensor<float>* get_output();
+    int get_output_dim();
 
 private:
     Tensor<float>* _input, *_w, *_b, *_res, *_tmp;

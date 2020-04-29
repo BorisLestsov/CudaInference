@@ -48,6 +48,7 @@ LinearLayer::LinearLayer(cublasHandle_t& cublas_handle, const std::string& w_pat
 
 LinearLayer::~LinearLayer(){
     delete _w; 
+    delete _b; 
     delete _res; 
     delete _tmp;
 }
@@ -57,7 +58,7 @@ void LinearLayer::forward()
     
     //row_major_sgemm(cublas_handle, batch_size, output_dim, input_dim, _input->_ptr, _w->_ptr, _res->_ptr, _tmp->_ptr);
     row_major_sgemm_add(cublas_handle, batch_size, output_dim, input_dim, _input->_ptr, _w->_ptr, _b->_ptr, _res->_ptr, _tmp->_ptr);
-    cudaDeviceSynchronize();
+    //cudaDeviceSynchronize();
     //debug_ker<<<1,1>>>(_res->_ptr, 0);
 }
 
@@ -79,4 +80,9 @@ void LinearLayer::set_input(Tensor<float>* input)
 Tensor<float>* LinearLayer::get_output()
 {
     return _res;
+}
+
+int LinearLayer::get_output_dim()
+{
+    return output_dim;
 }

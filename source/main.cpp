@@ -10,8 +10,9 @@
 
 #include "Net.hpp"
 #include "Layer.hpp"
-#include "LinearLayer.hpp"
 #include "Tensor.hpp"
+#include "LinearLayer.hpp"
+#include "ReluLayer.hpp"
 
 
 int main(int argc, const char** argv)
@@ -58,7 +59,8 @@ int main(int argc, const char** argv)
         input->from_cpu(float_data_ptr);
 
         LinearLayer* fc1 = new LinearLayer(cublas_handle, "../python/weights/fc1", 2);
-        //LinearLayer* fc2 = new LinearLayer(cublas_handle, "../python/weights/fc2", 2);
+        ReluLayer* relu = new ReluLayer(fc1->get_output_dim(), 2);
+        LinearLayer* fc2 = new LinearLayer(cublas_handle, "../python/weights/fc2", 2);
 
         input->reshape({input->size()[0], input->size()[1] * input->size()[2] * input->size()[3]});
 
@@ -66,9 +68,13 @@ int main(int argc, const char** argv)
         fc1->forward();
         output = fc1->get_output();
 
-        // fc2->set_input(output);
-        // fc2->forward();
-        // output = fc2->get_output();
+        relu->set_input(output);
+        relu->forward();
+        output = relu->get_output();
+
+        fc2->set_input(output);
+        fc2->forward();
+        output = fc2->get_output();
 
         float* cpu_result = (float*) malloc(output->count()*sizeof(float));
         output->to_cpu(cpu_result);

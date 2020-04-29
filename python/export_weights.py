@@ -8,8 +8,8 @@ from sys import argv
 
 model = torch.nn.Sequential(OrderedDict([
     ("fc1", torch.nn.Linear(3*5*5, 5)),
-    #("relu1", torch.nn.ReLU()),
-    #("fc2", torch.nn.Linear(5, 10)),
+    ("relu1", torch.nn.ReLU()),
+    ("fc2", torch.nn.Linear(5, 10)),
 ]))
 
 #torch.save(model.state_dict(), "fc_net.pth")
