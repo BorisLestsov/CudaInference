@@ -43,7 +43,7 @@ int main(int argc, const char** argv)
         int n=2, c=3, h=5, w=5;
         float* float_data_ptr = (float*) malloc(n*c*h*w*sizeof(float));
         for (int i = 0; i < n*h*w*c; ++i){
-            float_data_ptr[i] = (float) (i+1);
+            float_data_ptr[i] = (float) ((i+1) % (c*h*w));
         }
 
         // Net net(cublas_handle);
@@ -57,12 +57,18 @@ int main(int argc, const char** argv)
         Tensor<float>* output;
         input->from_cpu(float_data_ptr);
 
-        LinearLayer* linear = new LinearLayer(cublas_handle, "kek");
+        LinearLayer* fc1 = new LinearLayer(cublas_handle, "../python/weights/fc1", 2);
+        //LinearLayer* fc2 = new LinearLayer(cublas_handle, "../python/weights/fc2", 2);
 
         input->reshape({input->size()[0], input->size()[1] * input->size()[2] * input->size()[3]});
-        linear->set_input(input);
-        linear->forward();
-        output = linear->get_output();
+
+        fc1->set_input(input);
+        fc1->forward();
+        output = fc1->get_output();
+
+        // fc2->set_input(output);
+        // fc2->forward();
+        // output = fc2->get_output();
 
         float* cpu_result = (float*) malloc(output->count()*sizeof(float));
         output->to_cpu(cpu_result);

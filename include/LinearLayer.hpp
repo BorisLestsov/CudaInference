@@ -12,7 +12,7 @@
 
 class LinearLayer: public Layer {
 public:
-    LinearLayer(cublasHandle_t& cublas_handle_p, const std::string& w_path);
+    LinearLayer(cublasHandle_t& cublas_handle_p, const std::string& w_path, int batch_size = 1);
     ~LinearLayer();
 
     void forward();
