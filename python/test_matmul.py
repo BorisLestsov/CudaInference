@@ -1,7 +1,6 @@
 import numpy as np
 
-A = np.arange(2*3*5*5).reshape(2, -1) + 1
-B = np.ones(3*5*5*5).reshape(5, -1) * 0.5
-
-res = A.dot(B.T)
+a = np.arange(2*3*3).reshape(2, 3, 3)
+print(a)
+res = a.transpose(2, 1, 0)
 print(res)

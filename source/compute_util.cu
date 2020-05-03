@@ -7,6 +7,13 @@ __global__ void debug_ker(float* ptr, int addr){
     printf("%d %f\n", addr, ptr[addr]);
 }
 
+void debug_array(float* arr, int N){
+    for (int i = 0; i < N; ++i){
+        debug_ker<<<1,1>>>(arr, i);
+    }
+    cudaDeviceSynchronize();
+}
+
 void row_major_sgemm(cublasHandle_t& cublas_handle, int m, int n, int k, float* A, float* B, float* C, float* tmp){
     float alpha = 1.0;
     float beta = 0.0;

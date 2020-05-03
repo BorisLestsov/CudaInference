@@ -7,9 +7,10 @@ from sys import argv
 #model = models.resnet18(pretrained=True)
 
 model = torch.nn.Sequential(OrderedDict([
-    ("fc1", torch.nn.Linear(3*5*5, 5)),
-    ("relu1", torch.nn.ReLU()),
-    ("fc2", torch.nn.Linear(5, 10)),
+    ("conv1", torch.nn.Conv2d(3, 4, 3, bias=False)),
+    #("fc1", torch.nn.Linear(3*5*5, 5)),
+    #("relu1", torch.nn.ReLU()),
+    #("fc2", torch.nn.Linear(5, 10)),
 ]))
 
 #torch.save(model.state_dict(), "fc_net.pth")
@@ -18,13 +19,15 @@ model.load_state_dict(state, strict=False)
 
 model.eval()
 
-w = model.fc1.weight.detach().cpu().numpy()
-inp = (np.arange(1*3*5*5).reshape(1, 3*5*5) + 1) % (3*5*5)
+inp = (np.arange(2*3*5*5).reshape(2, 3, 5, 5))
 
 with torch.no_grad():
     inp = torch.from_numpy(inp).float()
     res = model(inp)
-    print(res)
+
+#print(res.shape)
+for i, k in enumerate(res.reshape(-1)):
+    print(i, k.item())
 
 if False:
     for name, tens in model.named_parameters():

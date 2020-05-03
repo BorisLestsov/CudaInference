@@ -12,6 +12,7 @@
 #include "Layer.hpp"
 #include "Tensor.hpp"
 #include "LinearLayer.hpp"
+#include "ConvLayer.hpp"
 #include "ReluLayer.hpp"
 
 
@@ -44,7 +45,7 @@ int main(int argc, const char** argv)
         int n=2, c=3, h=5, w=5;
         float* float_data_ptr = (float*) malloc(n*c*h*w*sizeof(float));
         for (int i = 0; i < n*h*w*c; ++i){
-            float_data_ptr[i] = (float) ((i+1) % (c*h*w));
+            float_data_ptr[i] = (float) (i);
         }
 
         // Net net(cublas_handle);
@@ -58,30 +59,18 @@ int main(int argc, const char** argv)
         Tensor<float>* output;
         input->from_cpu(float_data_ptr);
 
-        LinearLayer* fc1 = new LinearLayer(cublas_handle, "../python/weights/fc1", 2);
-        ReluLayer* relu = new ReluLayer(fc1->get_output_dim(), 2);
-        LinearLayer* fc2 = new LinearLayer(cublas_handle, "../python/weights/fc2", 2);
+        ConvLayer* conv1 = new ConvLayer(cublas_handle, "../python/weights/conv1", 2);
 
-        input->reshape({input->size()[0], input->size()[1] * input->size()[2] * input->size()[3]});
-
-        fc1->set_input(input);
-        fc1->forward();
-        output = fc1->get_output();
-
-        relu->set_input(output);
-        relu->forward();
-        output = relu->get_output();
-
-        fc2->set_input(output);
-        fc2->forward();
-        output = fc2->get_output();
+        conv1->set_input(input);
+        conv1->forward();
+        output = conv1->get_output();
 
         float* cpu_result = (float*) malloc(output->count()*sizeof(float));
         output->to_cpu(cpu_result);
 
-        for (int i = 0; i < output->count(); ++i){
-            std::cout << i << "  " << cpu_result[i] << std::endl;
-        }
+       // for (int i = 0; i < output->count(); ++i){
+       //     std::cout << i << "  " << cpu_result[i] << std::endl;
+       // }
 
 
         // TODO: delete all!!
