@@ -23,13 +23,18 @@ public:
 
 private:
     Tensor<float>* _input, *_w, *_b, *_res;
-    Tensor<float>* _imcol, *_wcol, *_tmp;
+    Tensor<float>* _imcol, *_wcol, *_bcol, *_tmp;
     Tensor<int>* _dims, *_reorder, *_strides, *_new_strides;
+    std::vector<float> data_b;
     int Hi;
     int Wi;
     int Ho;
     int Wo;
     int batch_size, N, C, H, W, _pad, _stride;
+    int m;
+    int n;
+    int k;
+    bool input_set;
     cublasHandle_t& cublas_handle;
 
 };

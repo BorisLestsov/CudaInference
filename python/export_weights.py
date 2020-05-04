@@ -13,9 +13,12 @@ model = torch.nn.Sequential(OrderedDict([
     #("fc2", torch.nn.Linear(5, 10)),
 ]))
 
-#torch.save(model.state_dict(), "fc_net.pth")
-state = torch.load(argv[1])
-model.load_state_dict(state, strict=False)
+export = False
+if export:
+    torch.save(model.state_dict(), "fc_net.pth")
+else:
+    state = torch.load(argv[1])
+    model.load_state_dict(state, strict=False)
 
 model.eval()
 
@@ -29,7 +32,7 @@ with torch.no_grad():
 for i, k in enumerate(res.reshape(-1)):
     print(i, k.item())
 
-if False:
+if export:
     for name, tens in model.named_parameters():
         print(name, tens.shape)
         path = "./weights/" + name

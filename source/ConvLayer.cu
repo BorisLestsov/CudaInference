@@ -68,8 +68,8 @@ __global__ void make_imcol(float* im_ptr, float* res_ptr, int Nf, int Cf, int Hf
 #define Ndims 4
 __global__ void transpose_ker(float* src_ptr, float* dst_ptr, int* src_dims, int* strides, int* reorder, int* new_strides){
     int i = blockIdx.x*blockDim.x + threadIdx.x;
-    int N = strides[0] * src_dims[0];
-    if (i >= N){
+    int total = strides[0] * src_dims[0];
+    if (i >= total){
         return;
     }
 
@@ -94,6 +94,7 @@ __global__ void transpose_ker(float* src_ptr, float* dst_ptr, int* src_dims, int
         new_i += new_strides[k]*new_idx[k];
     }
 
+    printf("(%d %d %d %d)  ->  (%d %d %d %d)       %d %d      %d %d %d %d \n", idx[0], idx[1], idx[2], idx[3], new_idx[0], new_idx[1], new_idx[2], new_idx[3], i, new_i, src_dims[0], src_dims[1], src_dims[2], src_dims[3]);
     dst_ptr[new_i] = src_ptr[i];
 }
 
@@ -101,7 +102,8 @@ __global__ void transpose_ker(float* src_ptr, float* dst_ptr, int* src_dims, int
 ConvLayer::ConvLayer(cublasHandle_t& cublas_handle, const std::string& w_path, int batch_size_p, int pad, int stride):
     cublas_handle(cublas_handle),
     _pad(pad),
-    _stride(stride)
+    _stride(stride),
+    input_set(false)
 {
     batch_size = batch_size_p;
 
@@ -114,7 +116,6 @@ ConvLayer::ConvLayer(cublasHandle_t& cublas_handle, const std::string& w_path, i
         throw std::runtime_error("fortran format unsupported");
     }
 
-
     N = 4;
     C = 3;
     H = 3;
@@ -125,48 +126,42 @@ ConvLayer::ConvLayer(cublasHandle_t& cublas_handle, const std::string& w_path, i
     _w = new Tensor<float>({N, C, H, W});
     _w->from_cpu(data.data());
 
-    // npy::LoadArrayFromNumpy(w_path + ".bias.npy", shape, is_f, data);
-    // if (is_f) {
-    //     throw std::runtime_error("fortran format unsupported");
-    // }
-    // _b = new Tensor<float>({batch_size, output_dim});
-    // float* tmp_ptr = _b->_ptr;
-    // for (int i = 0; i < batch_size; ++i){
-    //     cudaMemcpy(tmp_ptr, data.data(), output_dim*sizeof(float), cudaMemcpyHostToDevice);
-    //     tmp_ptr += output_dim;
-    // }
 
-    //_tmp = new Tensor<float>({output_dim, batch_size});
+    std::vector<unsigned long> shape_b;
+    npy::LoadArrayFromNumpy(w_path + ".bias.npy", shape_b, is_f, data_b);
+    if (is_f) {
+        throw std::runtime_error("fortran format unsupported");
+    }
 
 
     _wcol = new Tensor<float>({N, C*H*W});
 
+    bool weights_nchw = true;
+    if (weights_nchw) {
+        // weights already in im2col format
+        _wcol = _w;
+    } else {
+        // transform weights to im2col format
+        int cell_size = 32;
+        dim3 block_size;
+        dim3 grid_size;
 
-    //std::cout << "INIT" << std::endl;
+        int wcol_Ho = N;
+        int wcol_Wo = C*H*W;
+        int num_blocks_x = wcol_Ho/cell_size + (wcol_Ho % cell_size != 0);
+        int num_blocks_y = wcol_Wo/cell_size + (wcol_Wo % cell_size != 0);
+        block_size = dim3(cell_size, cell_size);
+        grid_size = dim3(num_blocks_x, num_blocks_y, 3);
 
-    // int cell_size = 32;
-    // dim3 block_size;
-    // dim3 grid_size;
-
-    // int wcol_Ho = N;
-    // int wcol_Wo = C*H*W;
-    // int num_blocks_x = wcol_Ho/cell_size + (wcol_Ho % cell_size != 0);
-    // int num_blocks_y = wcol_Wo/cell_size + (wcol_Wo % cell_size != 0);
-    // block_size = dim3(cell_size, cell_size);
-    // grid_size = dim3(num_blocks_x, num_blocks_y, 3);
-
-    // make_wcol<<<block_size, grid_size>>>(_w->_ptr, _wcol->_ptr, N, C, H, W);
-
+        make_wcol<<<block_size, grid_size>>>(_w->_ptr, _wcol->_ptr, N, C, H, W);
+    }
 }
 
 void ConvLayer::forward() 
 {
-    _imcol = new Tensor<float>({C*H*W, batch_size*Ho*Wo});
-
-    //_res = new Tensor<float>({batch_size, C, Ho, Wo});
-    _res = new Tensor<float>({N, batch_size*Ho*Wo});
-    _tmp = new Tensor<float>({N, batch_size*Ho*Wo});
-
+    if (! input_set){
+        throw std::runtime_error("input not set in forward");
+    }
 
     int cell_size = 32;
     dim3 block_size;
@@ -182,19 +177,50 @@ void ConvLayer::forward()
     grid_size = dim3(num_blocks_x, num_blocks_y);
 
     make_imcol<<<block_size, grid_size>>>(_input->_ptr, _imcol->_ptr, N, C, H, W, Ho, Wo, Hi, Wi, batch_size);
-    //debug_array(_imcol->_ptr, _imcol->count());
 
-    // make_wcol:
-    _wcol = _w;
 
-    int m = N;
-    int n = batch_size*Ho*Wo;
-    int k = C*H*W;
     row_major_sgemm(cublas_handle, m, n, k, _wcol->_ptr, _imcol->_ptr, _res->_ptr, _tmp->_ptr);
 
-    num_blocks_x = (N*n)/cell_size + ((N*n) % cell_size != 0);
-    block_size = dim3(cell_size);
-    grid_size = dim3(num_blocks_x);
+    transpose_ker<<<grid_size, block_size>>>(_res->_ptr, _tmp->_ptr, _dims->_ptr, _strides->_ptr, _reorder->_ptr, _new_strides->_ptr);
+    _tmp->reshape({batch_size, N, Ho, Wo});
+
+    debug_array(_tmp->_ptr, _tmp->count());
+}
+
+
+void ConvLayer::set_input(Tensor<float>* input)
+{
+    if (input->size().size() != 4) {
+        throw std::runtime_error("not four dims in input");
+    }
+
+    Size isize = input->size();
+    //batch_size = isize[0];
+    Hi = isize[2];
+    Wi = isize[3];
+    Ho = (Hi + 2*_pad - 1*(H - 1) - 1)/_stride + 1;
+    Wo = (Wi + 2*_pad - 1*(W - 1) - 1)/_stride + 1;
+    m = N;
+    n = batch_size*Ho*Wo;
+    k = C*H*W;
+
+    if (input->size()[0] != batch_size) {
+        throw std::runtime_error("batch size does not match");
+    }
+    //if (input->size()[1] != input_dim) {
+    //    throw std::runtime_error(std::string("input dim is different: ") + std::to_string(input->size()[1]) + " vs " + std::to_string(input_dim));
+    //}
+    _input = input;
+
+    _imcol = new Tensor<float>({C*H*W, batch_size*Ho*Wo});
+
+    //_res = new Tensor<float>({batch_size, C, Ho, Wo});
+    _res = new Tensor<float>({N, batch_size*Ho*Wo});
+    _tmp = new Tensor<float>({N, batch_size*Ho*Wo});
+
+
+
+    // create arrays for reshape
 
     Size dims_cpu({N, batch_size, Ho, Wo});
     _dims = new Tensor<int>({4});
@@ -212,10 +238,16 @@ void ConvLayer::forward()
     _new_strides = new Tensor<int>({4});
     _new_strides->from_cpu(new_strides_cpu.data());
 
-    transpose_ker<<<grid_size, block_size>>>(_res->_ptr, _tmp->_ptr, _dims->_ptr, _strides->_ptr, _reorder->_ptr, _new_strides->_ptr);
-    _tmp->reshape({batch_size, N, Ho, Wo});
-
-    debug_array(_tmp->_ptr, _tmp->count());
+    // bias array to add
+    _bcol = new Tensor<float>({batch_size, N, Ho, Wo});
+    float* tmp_ptr = _bcol->_ptr;
+    for (int i = 0; i < batch_size; ++i){
+        for (int j = 0; j < N; ++j){
+            cudaMemset(tmp_ptr, data_b[j], Ho*Wo*sizeof(float));
+            tmp_ptr += Ho*Wo;
+        }
+    }
+    input_set = true;
 }
 
 ConvLayer::~ConvLayer(){
@@ -224,6 +256,7 @@ ConvLayer::~ConvLayer(){
     //delete _b; 
     delete _imcol;
     delete _wcol;
+    delete _bcol; 
 
     delete _res; 
     delete _tmp;
@@ -234,31 +267,9 @@ ConvLayer::~ConvLayer(){
     delete _new_strides;
 }
 
-void ConvLayer::set_input(Tensor<float>* input)
-{
-    if (input->size().size() != 4) {
-        throw std::runtime_error("not four dims in input");
-    }
-
-    Size isize = input->size();
-    //batch_size = isize[0];
-    Hi = isize[2];
-    Wi = isize[3];
-    Ho = (Hi + 2*_pad - 1*(H - 1) - 1)/_stride + 1;
-    Wo = (Wi + 2*_pad - 1*(W - 1) - 1)/_stride + 1;
-
-    if (input->size()[0] != batch_size) {
-        throw std::runtime_error("batch size does not match");
-    }
-    //if (input->size()[1] != input_dim) {
-    //    throw std::runtime_error(std::string("input dim is different: ") + std::to_string(input->size()[1]) + " vs " + std::to_string(input_dim));
-    //}
-    _input = input;
-}
-
 Tensor<float>* ConvLayer::get_output()
 {
-    return _res;
+    return _tmp;
 }
 
 int ConvLayer::get_output_dim()
