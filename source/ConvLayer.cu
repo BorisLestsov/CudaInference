@@ -94,7 +94,8 @@ __global__ void transpose_ker(float* src_ptr, float* dst_ptr, int* src_dims, int
         new_i += new_strides[k]*new_idx[k];
     }
 
-    printf("(%d %d %d %d)  ->  (%d %d %d %d)       %d %d      %d %d %d %d \n", idx[0], idx[1], idx[2], idx[3], new_idx[0], new_idx[1], new_idx[2], new_idx[3], i, new_i, src_dims[0], src_dims[1], src_dims[2], src_dims[3]);
+    //printf("(%d %d %d %d)  ->  (%d %d %d %d)       %d %d      %d %d %d %d \n", idx[0], idx[1], idx[2], idx[3], new_idx[0], new_idx[1], new_idx[2], new_idx[3], i, new_i, src_dims[0], src_dims[1], src_dims[2], src_dims[3]);
+
     dst_ptr[new_i] = src_ptr[i];
 }
 
@@ -181,6 +182,9 @@ void ConvLayer::forward()
 
     row_major_sgemm(cublas_handle, m, n, k, _wcol->_ptr, _imcol->_ptr, _res->_ptr, _tmp->_ptr);
 
+    num_blocks_x = (N*n)/cell_size + ((N*n) % cell_size != 0);
+    block_size = dim3(cell_size);
+    grid_size = dim3(num_blocks_x);
     transpose_ker<<<grid_size, block_size>>>(_res->_ptr, _tmp->_ptr, _dims->_ptr, _strides->_ptr, _reorder->_ptr, _new_strides->_ptr);
     _tmp->reshape({batch_size, N, Ho, Wo});
 
