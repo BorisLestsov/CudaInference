@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <vector>
 #include <iostream>
+#include <compute_util.cuh>
 
 typedef std::vector<int> Size;
 
@@ -14,12 +15,14 @@ public:
     Tensor(Size size_p);
     ~Tensor();
 
-    int count();
-    int ndim();
+    int count() const;
+    int ndim() const;
     const Size& size();
     void from_cpu(T* ptr);
     void to_cpu(T* ptr);
     Tensor& reshape(const Size& newsize);
+
+    static Tensor* add_inplace(Tensor* src1, const Tensor* src2);
 
     T* _ptr;
 private:
@@ -51,13 +54,13 @@ Tensor<T>::~Tensor()
 }
 
 template<typename T>
-int Tensor<T>::ndim()
+int Tensor<T>::ndim() const
 {
     return _ndim; 
 }
 
 template<typename T>
-int Tensor<T>::count()
+int Tensor<T>::count() const
 {
     return _count;
 }
@@ -93,6 +96,17 @@ Tensor<T>& Tensor<T>::reshape(const Size& newsize)
     _size = newsize;
     _ndim = _size.size();
     return *this;
+}
+
+
+template<typename T>
+Tensor<T>* Tensor<T>::add_inplace(Tensor* src1, const Tensor* src2)
+{
+    if (src1->count() != src2->count()){
+        throw std::runtime_error("different size in Tensor::add_inplace");
+    }
+    cuda_add_inplace(src1->_ptr, src2->_ptr, src1->_ptr, src1->count());
+    return src1;
 }
 
 #endif //CUDA_PROJ_TENSOR_CUH

@@ -38,7 +38,7 @@ __global__ void make_imcol(float* im_ptr, float* res_ptr, int Nf, int Cf, int Hf
 {
     int i = blockIdx.x*blockDim.x + threadIdx.x;
     int j = blockIdx.y*blockDim.y + threadIdx.y;
-    int filt_stride = Hf*Wf;
+    //int filt_stride = Hf*Wf;
     int i_mat_stride = Cf*Hi*Wi;
     int total_scals = Ho*Wo*batch_size;
     int o_mat_stride = Cf*Hf*Wf;
@@ -73,14 +73,14 @@ __global__ void transpose_ker(float* src_ptr, float* dst_ptr, int* src_dims, int
         return;
     }
 
-    int idx[Ndims];
+    //int idx[Ndims];
     int new_idx[Ndims];
     int acc = 0;
     for (int k = 0; k < Ndims; ++k) {
         int cur_i = (i - acc) / strides[k];
         acc += cur_i*strides[k];
 
-        idx[k] = cur_i;
+        //idx[k] = cur_i;
         new_idx[reorder[k]] = cur_i;
     }
 
@@ -188,6 +188,9 @@ void ConvLayer::forward()
     transpose_ker<<<grid_size, block_size>>>(_res->_ptr, _tmp->_ptr, _dims->_ptr, _strides->_ptr, _reorder->_ptr, _new_strides->_ptr);
     _tmp->reshape({batch_size, N, Ho, Wo});
 
+
+    Tensor<float>::add_inplace(_tmp, _bcol);
+
     debug_array(_tmp->_ptr, _tmp->count());
 }
 
@@ -244,11 +247,11 @@ void ConvLayer::set_input(Tensor<float>* input)
 
     // bias array to add
     _bcol = new Tensor<float>({batch_size, N, Ho, Wo});
-    float* tmp_ptr = _bcol->_ptr;
+    thrust::device_ptr<float> thr_ptr = thrust::device_pointer_cast<float>(_bcol->_ptr);
     for (int i = 0; i < batch_size; ++i){
         for (int j = 0; j < N; ++j){
-            cudaMemset(tmp_ptr, data_b[j], Ho*Wo*sizeof(float));
-            tmp_ptr += Ho*Wo;
+            thrust::fill(thr_ptr, thr_ptr + Ho*Wo, data_b[j]);
+            thr_ptr += Ho*Wo;
         }
     }
     input_set = true;

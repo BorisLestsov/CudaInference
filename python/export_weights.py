@@ -7,7 +7,7 @@ from sys import argv
 #model = models.resnet18(pretrained=True)
 
 model = torch.nn.Sequential(OrderedDict([
-    ("conv1", torch.nn.Conv2d(3, 4, 3, bias=False)),
+    ("conv1", torch.nn.Conv2d(3, 4, 3, bias=True)),
     #("fc1", torch.nn.Linear(3*5*5, 5)),
     #("relu1", torch.nn.ReLU()),
     #("fc2", torch.nn.Linear(5, 10)),
