@@ -59,7 +59,7 @@ int main(int argc, const char** argv)
         Tensor<float>* output;
         input->from_cpu(float_data_ptr);
 
-        ConvLayer* conv1 = new ConvLayer(cublas_handle, "../python/weights/conv1", 2);
+        ConvLayer* conv1 = new ConvLayer(cublas_handle, "../python/weights/conv1", 2, 1, 1, true);
 
         conv1->set_input(input);
         conv1->forward();

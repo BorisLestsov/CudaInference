@@ -12,7 +12,7 @@
 
 class ConvLayer: public Layer {
 public:
-    ConvLayer(cublasHandle_t& cublas_handle_p, const std::string& w_path, int batch_size = 1, int stride=1, int pad=0);
+    ConvLayer(cublasHandle_t& cublas_handle_p, const std::string& w_path, int batch_size = 1, int stride=1, int pad=0, bool bias=true);
     ~ConvLayer();
 
     void forward();
@@ -34,7 +34,7 @@ private:
     int m;
     int n;
     int k;
-    bool input_set;
+    bool input_set, _bias;
     cublasHandle_t& cublas_handle;
 
 };

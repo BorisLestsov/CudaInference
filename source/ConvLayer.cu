@@ -34,7 +34,7 @@ __global__ void make_wcol(float* w_ptr, float* res_ptr, int N, int C, int H, int
     res_ptr[i*mat_stride + j] = w_ptr[Ni*mat_stride + Ci*filt_stride + Hi*W + Wi];
 }
 
-__global__ void make_imcol(float* im_ptr, float* res_ptr, int Nf, int Cf, int Hf, int Wf, int Ho, int Wo, int Hi, int Wi, int batch_size)
+__global__ void make_imcol(float* im_ptr, float* res_ptr, int Nf, int Cf, int Hf, int Wf, int Ho, int Wo, int Hi, int Wi, int batch_size, int pad, float pad_val=0)
 {
     int i = blockIdx.x*blockDim.x + threadIdx.x;
     int j = blockIdx.y*blockDim.y + threadIdx.y;
@@ -50,8 +50,8 @@ __global__ void make_imcol(float* im_ptr, float* res_ptr, int Nf, int Cf, int Hf
         return;
     }
 
-    int Ri = (i / Wo) % Hf;
-    int Rj = (i % Wo) % Wf;
+    int Ri = (i / Wo);
+    int Rj = (i % Wo);
     int ci = j / (Hf*Wf);
     int K_ind_i = (j - ci*Hf*Wf) / Wf;
     int K_ind_j = (j - ci*Hf*Wf) % Wf;
@@ -60,8 +60,19 @@ __global__ void make_imcol(float* im_ptr, float* res_ptr, int Nf, int Cf, int Hf
     int wi = Rj + K_ind_j;
     int ni = i / (Ho*Wo); // batch
 
-    //printf("i=%d ; j=%d ; Ri=%d ; Rj=%d ; K_ind_i=%d ; K_ind_j=%d ; ci=%d ; hi=%d ; wi=%d ; ni=%d ; res=%d\n", i, j, Ri, Rj, K_ind_i, K_ind_j, ci, hi, wi, ni, i*o_mat_stride + j);
 
+    bool is_pad = (hi < pad) || (wi < pad) || (hi >= Hi + pad) || (wi >= Wi + pad);
+    if (i == 3){
+        //printf("i=%d ; j=%d ; Ri=%d ; Rj=%d ; K_ind_i=%d ; K_ind_j=%d ; ci=%d ; hi=%d ; wi=%d ; ni=%d ; res=%d ; is_pad=%d\n", i, j, Ri, Rj, K_ind_i, K_ind_j, ci, hi, wi, ni, i*o_mat_stride + j, is_pad);
+        ;
+    }
+
+    if (is_pad){
+        res_ptr[i*o_mat_stride + j] = pad_val;
+        return;
+    }
+    hi -= pad;
+    wi -= pad;
     res_ptr[i*o_mat_stride + j] = im_ptr[ni*i_mat_stride + ci*Hi*Wi + hi*Wi + wi];
 }
 
@@ -100,10 +111,11 @@ __global__ void transpose_ker(float* src_ptr, float* dst_ptr, int* src_dims, int
 }
 
 
-ConvLayer::ConvLayer(cublasHandle_t& cublas_handle, const std::string& w_path, int batch_size_p, int pad, int stride):
+ConvLayer::ConvLayer(cublasHandle_t& cublas_handle, const std::string& w_path, int batch_size_p, int pad, int stride, bool bias):
     cublas_handle(cublas_handle),
     _pad(pad),
     _stride(stride),
+    _bias(bias),
     input_set(false)
 {
     batch_size = batch_size_p;
@@ -117,21 +129,21 @@ ConvLayer::ConvLayer(cublasHandle_t& cublas_handle, const std::string& w_path, i
         throw std::runtime_error("fortran format unsupported");
     }
 
-    N = 4;
-    C = 3;
-    H = 3;
-    W = 3;
-    _stride = 1;
-    _pad = 0;
+    N = shape[0];
+    C = shape[1];
+    H = shape[2];
+    W = shape[3];
 
     _w = new Tensor<float>({N, C, H, W});
     _w->from_cpu(data.data());
 
 
-    std::vector<unsigned long> shape_b;
-    npy::LoadArrayFromNumpy(w_path + ".bias.npy", shape_b, is_f, data_b);
-    if (is_f) {
-        throw std::runtime_error("fortran format unsupported");
+    if (_bias){
+        std::vector<unsigned long> shape_b;
+        npy::LoadArrayFromNumpy(w_path + ".bias.npy", shape_b, is_f, data_b);
+        if (is_f) {
+            throw std::runtime_error("fortran format unsupported");
+        }
     }
 
 
@@ -177,7 +189,8 @@ void ConvLayer::forward()
     block_size = dim3(cell_size, cell_size);
     grid_size = dim3(num_blocks_x, num_blocks_y);
 
-    make_imcol<<<block_size, grid_size>>>(_input->_ptr, _imcol->_ptr, N, C, H, W, Ho, Wo, Hi, Wi, batch_size);
+    make_imcol<<<block_size, grid_size>>>(_input->_ptr, _imcol->_ptr, N, C, H, W, Ho, Wo, Hi, Wi, batch_size, _pad);
+    //debug_array(_imcol->_ptr, _imcol->count());
 
 
     row_major_sgemm(cublas_handle, m, n, k, _wcol->_ptr, _imcol->_ptr, _res->_ptr, _tmp->_ptr);
@@ -188,8 +201,9 @@ void ConvLayer::forward()
     transpose_ker<<<grid_size, block_size>>>(_res->_ptr, _tmp->_ptr, _dims->_ptr, _strides->_ptr, _reorder->_ptr, _new_strides->_ptr);
     _tmp->reshape({batch_size, N, Ho, Wo});
 
-
-    Tensor<float>::add_inplace(_tmp, _bcol);
+    if (_bias) {
+        Tensor<float>::add_inplace(_tmp, _bcol);
+    }
 
     debug_array(_tmp->_ptr, _tmp->count());
 }
@@ -245,13 +259,15 @@ void ConvLayer::set_input(Tensor<float>* input)
     _new_strides = new Tensor<int>({4});
     _new_strides->from_cpu(new_strides_cpu.data());
 
-    // bias array to add
-    _bcol = new Tensor<float>({batch_size, N, Ho, Wo});
-    thrust::device_ptr<float> thr_ptr = thrust::device_pointer_cast<float>(_bcol->_ptr);
-    for (int i = 0; i < batch_size; ++i){
-        for (int j = 0; j < N; ++j){
-            thrust::fill(thr_ptr, thr_ptr + Ho*Wo, data_b[j]);
-            thr_ptr += Ho*Wo;
+    if (_bias) {
+        // bias array to add
+        _bcol = new Tensor<float>({batch_size, N, Ho, Wo});
+        thrust::device_ptr<float> thr_ptr = thrust::device_pointer_cast<float>(_bcol->_ptr);
+        for (int i = 0; i < batch_size; ++i){
+            for (int j = 0; j < N; ++j){
+                thrust::fill(thr_ptr, thr_ptr + Ho*Wo, data_b[j]);
+                thr_ptr += Ho*Wo;
+            }
         }
     }
     input_set = true;
@@ -263,7 +279,9 @@ ConvLayer::~ConvLayer(){
     //delete _b; 
     delete _imcol;
     delete _wcol;
-    delete _bcol; 
+    if (_bias) {
+        delete _bcol; 
+    }
 
     delete _res; 
     delete _tmp;
