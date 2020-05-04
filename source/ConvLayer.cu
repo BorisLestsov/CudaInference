@@ -50,8 +50,8 @@ __global__ void make_imcol(float* im_ptr, float* res_ptr, int Nf, int Cf, int Hf
         return;
     }
 
-    int Ri = (i / Wo);
-    int Rj = (i % Wo);
+    int Ri = ((i % (Ho*Wo)) / Wo);
+    int Rj = ((i % (Ho*Wo)) % Wo);
     int ci = j / (Hf*Wf);
     int K_ind_i = (j - ci*Hf*Wf) / Wf;
     int K_ind_j = (j - ci*Hf*Wf) % Wf;
@@ -62,8 +62,8 @@ __global__ void make_imcol(float* im_ptr, float* res_ptr, int Nf, int Cf, int Hf
 
 
     bool is_pad = (hi < pad) || (wi < pad) || (hi >= Hi + pad) || (wi >= Wi + pad);
-    if (i == 3){
-        //printf("i=%d ; j=%d ; Ri=%d ; Rj=%d ; K_ind_i=%d ; K_ind_j=%d ; ci=%d ; hi=%d ; wi=%d ; ni=%d ; res=%d ; is_pad=%d\n", i, j, Ri, Rj, K_ind_i, K_ind_j, ci, hi, wi, ni, i*o_mat_stride + j, is_pad);
+    if (false){
+        printf("i=%d ; j=%d ; Ri=%d ; Rj=%d ; K_ind_i=%d ; K_ind_j=%d ; ci=%d ; hi=%d ; wi=%d ; ni=%d ; res=%d ; is_pad=%d\n", i, j, Ri, Rj, K_ind_i, K_ind_j, ci, hi, wi, ni, i*o_mat_stride + j, is_pad);
         ;
     }
 
