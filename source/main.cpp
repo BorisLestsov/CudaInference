@@ -15,6 +15,7 @@
 #include "ConvLayer.hpp"
 #include "ReluLayer.hpp"
 #include "MaxPoolLayer.hpp"
+#include "AvgPoolLayer.hpp"
 #include "BatchNormLayer.hpp"
 
 
@@ -61,12 +62,12 @@ int main(int argc, const char** argv)
         Tensor<float>* output;
         input->from_cpu(float_data_ptr);
 
-        ConvLayer* conv1 = new ConvLayer(cublas_handle, "../python/weights/conv1", 2, 2, 2, true);
+        AvgPoolLayer* avgp = new AvgPoolLayer(2, 5, 1, 0);
 
-        conv1->set_input(input);
-        conv1->forward();
+        avgp->set_input(input);
+        avgp->forward();
 
-        output = conv1->get_output();
+        output = avgp->get_output();
         float* cpu_result = (float*) malloc(output->count()*sizeof(float));
         output->to_cpu(cpu_result);
 
