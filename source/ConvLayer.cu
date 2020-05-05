@@ -39,8 +39,8 @@ __global__ void make_imcol(float* im_ptr, float* res_ptr, int Nf, int Cf, int Hf
     int i = blockIdx.x*blockDim.x + threadIdx.x;
     int j = blockIdx.y*blockDim.y + threadIdx.y;
     int i_mat_stride = Cf*Hi*Wi;
-    int total_scals = Ho*Wo*batch_size;
     int o_mat_stride = Cf*Hf*Wf;
+    int total_scals = Ho*Wo*batch_size;
 
     if (i >= total_scals){
         return;
@@ -58,7 +58,6 @@ __global__ void make_imcol(float* im_ptr, float* res_ptr, int Nf, int Cf, int Hf
     int hi = stride*Ri + K_ind_i;
     int wi = stride*Rj + K_ind_j;
     int ni = i / (Ho*Wo); // batch
-
 
     bool is_pad = (hi < pad) || (wi < pad) || (hi >= Hi + pad) || (wi >= Wi + pad);
 

@@ -353,7 +353,6 @@ int main(int argc, const char** argv)
             linear->forward();
 
             cudaDeviceSynchronize();
-
             output->to_cpu(cpu_result);
         }
         auto end = std::chrono::high_resolution_clock::now();

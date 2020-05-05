@@ -6,7 +6,7 @@ import torchvision.transforms as transforms
 import time
 
 model = models.resnet18(pretrained=True)
-model.eval().cuda()
+model.eval()
 
 tr = transforms.Compose(
     [
@@ -20,16 +20,14 @@ tr = transforms.Compose(
 
 #tens = tr(img).unsqueeze(0)
 batch_size = 16
-iters = 1000
+iters = 100
 tens = torch.ones(size=(batch_size, 3, 224, 224)).float()
 
 t = 0
 for i in range(iters):
     s = time.time()
 
-    tens = tens.cuda()
     out = model(tens)
-    out.cpu()
 
     e = time.time()
     t += e - s
