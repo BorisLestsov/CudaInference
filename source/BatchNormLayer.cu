@@ -3,8 +3,6 @@
 #include "BatchNormLayer.hpp"
 #include "Tensor.hpp"
 
-#include <cublas.h>
-#include <cublas_v2.h>
 #include <thrust/fill.h>
 #include <thrust/device_ptr.h>
 
@@ -14,33 +12,19 @@
 
 
 
-BatchNormLayer::BatchNormLayer(const std::string& w_path, int batch_size_p):
-    batch_size(batch_size_p)
+BatchNormLayer::BatchNormLayer(const std::string& w_path)
 {
     std::vector<unsigned long> shape;
     std::vector<float> data;
     bool is_f;
 
     npy::LoadArrayFromNumpy(w_path + ".weight.npy", shape, is_f, data_w);
-    if (is_f) {
-        throw std::runtime_error("fortran format unsupported");
-    }
     npy::LoadArrayFromNumpy(w_path + ".bias.npy", shape, is_f, data_b);
-    if (is_f) {
-        throw std::runtime_error("fortran format unsupported");
-    }
     npy::LoadArrayFromNumpy(w_path + ".running_mean.npy", shape, is_f, data_rm);
-    if (is_f) {
-        throw std::runtime_error("fortran format unsupported");
-    }
     npy::LoadArrayFromNumpy(w_path + ".running_var.npy", shape, is_f, data_rv);
-    if (is_f) {
-        throw std::runtime_error("fortran format unsupported");
-    }
 }
 
 BatchNormLayer::~BatchNormLayer(){
-    delete _res; 
 }
 
 
@@ -54,8 +38,6 @@ void batchnorm2d(float* src, float* res, float* w, float* b, float* rm, float* r
         return;
     }
     
-    //res[ni*o_mat_stride + ci*(Ho*Wo) + hi*(Wo) + wi] = ;
-
     res[i] = (src[i] - rm[i]) / (rv[i]) * w[i] + b[i];
 }
 
@@ -77,32 +59,28 @@ void BatchNormLayer::forward()
 }
 
 
-void BatchNormLayer::set_input(Tensor<float>* input)
+void BatchNormLayer::set_input(std::shared_ptr<Tensor<float>> input)
 {
     if (input->size().size() != 4) {
         throw std::runtime_error("not four dims in input");
     }
 
     Size isize = input->size();
-    //batch_size = isize[0];
+    batch_size = isize[0];
     Hi = isize[2];
     Wi = isize[3];
     Ho = Hi;
     Wo = Wi;
     C = isize[1];
 
-
-    if (input->size()[0] != batch_size) {
-        throw std::runtime_error("batch size does not match");
-    }
     _input = input;
 
-    _res = new Tensor<float>({batch_size, C, Ho, Wo});
+    _res = std::shared_ptr<Tensor<float>>(new Tensor<float>({batch_size, C, Ho, Wo}));
 
-    _w = new Tensor<float>({batch_size, C, Ho, Wo});
-    _b = new Tensor<float>({batch_size, C, Ho, Wo});
-    _rm = new Tensor<float>({batch_size, C, Ho, Wo});
-    _rv = new Tensor<float>({batch_size, C, Ho, Wo});
+    _w = std::shared_ptr<Tensor<float>>(new Tensor<float>({batch_size, C, Ho, Wo}));
+    _b = std::shared_ptr<Tensor<float>>(new Tensor<float>({batch_size, C, Ho, Wo}));
+    _rm = std::shared_ptr<Tensor<float>>(new Tensor<float>({batch_size, C, Ho, Wo}));
+    _rv = std::shared_ptr<Tensor<float>>(new Tensor<float>({batch_size, C, Ho, Wo}));
 
     thrust::device_ptr<float> thr_ptr;
 
@@ -140,7 +118,7 @@ void BatchNormLayer::set_input(Tensor<float>* input)
 }
 
 
-Tensor<float>* BatchNormLayer::get_output()
+std::shared_ptr<Tensor<float>> BatchNormLayer::get_output()
 {
     return _res;
 }

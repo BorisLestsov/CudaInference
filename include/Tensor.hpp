@@ -13,7 +13,7 @@ class Tensor {
 
 public:
     Tensor(Size size_p);
-    ~Tensor();
+    virtual ~Tensor();
 
     int count() const;
     int ndim() const;

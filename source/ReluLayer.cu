@@ -2,8 +2,6 @@
 #include "ReluLayer.hpp"
 #include "Tensor.hpp"
 
-#include <cublas.h>
-#include <cublas_v2.h>
 #include <thrust/fill.h>
 #include <thrust/device_ptr.h>
 
@@ -12,13 +10,11 @@
 #include "npy.hpp"
 
 
-ReluLayer::ReluLayer(int batch_size_p)
+ReluLayer::ReluLayer()
 {
-    batch_size = batch_size_p;
 }
 
 ReluLayer::~ReluLayer(){
-    delete _res; 
 }
 
 class elwise_max_functor {
@@ -58,16 +54,14 @@ void ReluLayer::forward()
 }
 
 
-void ReluLayer::set_input(Tensor<float>* input)
+void ReluLayer::set_input(std::shared_ptr<Tensor<float>> input)
 {
-    if (input->size()[0] != batch_size) {
-        throw std::runtime_error("batch size does not match");
-    }
+    batch_size = input->size()[0];
     _input = input;
-    _res = new Tensor<float>(_input->size());
+    _res = std::shared_ptr<Tensor<float>>(new Tensor<float>(_input->size()));
 }
 
-Tensor<float>* ReluLayer::get_output()
+std::shared_ptr<Tensor<float>> ReluLayer::get_output()
 {
     return _res;
 }

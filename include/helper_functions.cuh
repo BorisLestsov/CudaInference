@@ -134,6 +134,4 @@ inline void InitializeCUDA(int dev, bool verbose=false){
     checkCudaErrors(cudaSetDevice(dev));
 }
 
-
-
 #endif //CUDA_PROJ_HELPER_FUNCTIONS_CUH

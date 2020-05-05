@@ -5,6 +5,7 @@
 #include "Tensor.hpp"
 
 #include <string>
+#include <memory>
 
 #include <cublas.h>
 #include <cublas_v2.h>
@@ -12,19 +13,18 @@
 
 class ConvLayer: public Layer {
 public:
-    ConvLayer(cublasHandle_t& cublas_handle_p, const std::string& w_path, int batch_size = 1, int stride=1, int pad=0, bool bias=true);
+    ConvLayer(cublasHandle_t& cublas_handle_p, const std::string& w_path, int stride=1, int pad=0, bool bias=true);
     ~ConvLayer();
 
     void forward();
 
-    void set_input(Tensor<float>* input);
-    Tensor<float>* get_output();
-    int get_output_dim();
+    void set_input(std::shared_ptr<Tensor<float>> input);
+    std::shared_ptr<Tensor<float>> get_output();
 
 private:
-    Tensor<float>* _input, *_w, *_b, *_res;
-    Tensor<float>* _imcol, *_wcol, *_bcol, *_tmp;
-    Tensor<int>* _dims, *_reorder, *_strides, *_new_strides;
+    std::shared_ptr<Tensor<float>> _input, _w, _b, _res;
+    std::shared_ptr<Tensor<float>> _imcol, _wcol, _bcol, _tmp;
+    std::shared_ptr<Tensor<int>> _dims, _reorder, _strides, _new_strides;
     std::vector<float> data_b;
     int Hi;
     int Wi;
