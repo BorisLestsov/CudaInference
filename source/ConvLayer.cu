@@ -34,7 +34,7 @@ __global__ void make_wcol(float* w_ptr, float* res_ptr, int N, int C, int H, int
     res_ptr[i*mat_stride + j] = w_ptr[Ni*mat_stride + Ci*filt_stride + Hi*W + Wi];
 }
 
-__global__ void make_imcol(float* im_ptr, float* res_ptr, int Nf, int Cf, int Hf, int Wf, int Ho, int Wo, int Hi, int Wi, int batch_size, int pad, float pad_val=0)
+__global__ void make_imcol(float* im_ptr, float* res_ptr, int Nf, int Cf, int Hf, int Wf, int Ho, int Wo, int Hi, int Wi, int batch_size, int stride, int pad, float pad_val=0)
 {
     int i = blockIdx.x*blockDim.x + threadIdx.x;
     int j = blockIdx.y*blockDim.y + threadIdx.y;
@@ -56,8 +56,8 @@ __global__ void make_imcol(float* im_ptr, float* res_ptr, int Nf, int Cf, int Hf
     int K_ind_i = (j - ci*Hf*Wf) / Wf;
     int K_ind_j = (j - ci*Hf*Wf) % Wf;
 
-    int hi = Ri + K_ind_i;
-    int wi = Rj + K_ind_j;
+    int hi = stride*Ri + K_ind_i;
+    int wi = stride*Rj + K_ind_j;
     int ni = i / (Ho*Wo); // batch
 
 
@@ -189,7 +189,7 @@ void ConvLayer::forward()
     block_size = dim3(cell_size, cell_size);
     grid_size = dim3(num_blocks_x, num_blocks_y);
 
-    make_imcol<<<block_size, grid_size>>>(_input->_ptr, _imcol->_ptr, N, C, H, W, Ho, Wo, Hi, Wi, batch_size, _pad);
+    make_imcol<<<block_size, grid_size>>>(_input->_ptr, _imcol->_ptr, N, C, H, W, Ho, Wo, Hi, Wi, batch_size, _stride, _pad);
     //debug_array(_imcol->_ptr, _imcol->count());
 
 

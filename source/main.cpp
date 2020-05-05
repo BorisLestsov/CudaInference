@@ -61,12 +61,12 @@ int main(int argc, const char** argv)
         Tensor<float>* output;
         input->from_cpu(float_data_ptr);
 
-        BatchNormLayer* bn = new BatchNormLayer("../python/weights/bn1", n, 3);
+        ConvLayer* conv1 = new ConvLayer(cublas_handle, "../python/weights/conv1", 2, 2, 2, true);
 
-        bn->set_input(input);
-        bn->forward();
-        output = bn->get_output();
+        conv1->set_input(input);
+        conv1->forward();
 
+        output = conv1->get_output();
         float* cpu_result = (float*) malloc(output->count()*sizeof(float));
         output->to_cpu(cpu_result);
 

@@ -9,17 +9,12 @@ export = False
 
 with torch.no_grad():
     model = torch.nn.Sequential(OrderedDict([
-        #("conv1", torch.nn.Conv2d(3, 4, 3, padding=1, bias=True)),
-        ("bn1", torch.nn.BatchNorm2d(3)),
+        ("conv1", torch.nn.Conv2d(3, 4, 3, stride=2, padding=2, bias=True)),
         #("fc1", torch.nn.Linear(3*5*5, 5)),
         #("relu1", torch.nn.ReLU()),
         #("fc2", torch.nn.Linear(5, 10)),
     ]))
 
-    model.bn1.running_mean.fill_(3.)
-    model.bn1.running_var.fill_(16.)
-    model.bn1.weight.fill_(10)
-    model.bn1.bias.fill_(5)
 
 # model = models.resnet18(pretrained=True)
 # print(model)
