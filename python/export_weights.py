@@ -4,14 +4,17 @@ import torchvision.models as models
 from collections import OrderedDict
 from sys import argv
 
-#model = models.resnet18(pretrained=True)
 
 model = torch.nn.Sequential(OrderedDict([
-    ("conv1", torch.nn.Conv2d(3, 4, 3, padding=1, bias=True)),
+    #("conv1", torch.nn.Conv2d(3, 4, 3, padding=1, bias=True)),
+    ("maxpool", torch.nn.MaxPool2d(4, stride=1, padding=2)),
     #("fc1", torch.nn.Linear(3*5*5, 5)),
     #("relu1", torch.nn.ReLU()),
     #("fc2", torch.nn.Linear(5, 10)),
 ]))
+# model = models.resnet18(pretrained=True)
+# print(model)
+# exit()
 
 export = False
 if export:

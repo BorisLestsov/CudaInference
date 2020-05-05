@@ -14,6 +14,7 @@
 #include "LinearLayer.hpp"
 #include "ConvLayer.hpp"
 #include "ReluLayer.hpp"
+#include "MaxPoolLayer.hpp"
 
 
 int main(int argc, const char** argv)
@@ -59,11 +60,11 @@ int main(int argc, const char** argv)
         Tensor<float>* output;
         input->from_cpu(float_data_ptr);
 
-        ConvLayer* conv1 = new ConvLayer(cublas_handle, "../python/weights/conv1", 2, 1, 1, true);
+        MaxPoolLayer* mp = new MaxPoolLayer(n, 4, 1, 2);
 
-        conv1->set_input(input);
-        conv1->forward();
-        output = conv1->get_output();
+        mp->set_input(input);
+        mp->forward();
+        output = mp->get_output();
 
         float* cpu_result = (float*) malloc(output->count()*sizeof(float));
         output->to_cpu(cpu_result);
