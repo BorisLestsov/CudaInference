@@ -42,8 +42,6 @@ LinearLayer::LinearLayer(cublasHandle_t& cublas_handle, const std::string& w_pat
         tmp_ptr += output_dim;
     }
 
-    _tmp = new Tensor<float>({output_dim, batch_size});
-    _res = new Tensor<float>({batch_size, output_dim});
 }
 
 LinearLayer::~LinearLayer(){
@@ -65,16 +63,16 @@ void LinearLayer::forward()
 
 void LinearLayer::set_input(Tensor<float>* input)
 {
-    if (input->size().size() != 2) {
-        throw std::runtime_error("not two dims in input");
-    }
     if (input->size()[0] != batch_size) {
         throw std::runtime_error("batch size does not match");
     }
-    if (input->size()[1] != input_dim) {
-        throw std::runtime_error(std::string("input dim is different: ") + std::to_string(input->size()[1]) + " vs " + std::to_string(input_dim));
+    int inp_w = input->count() / batch_size;
+    if (inp_w != input_dim) {
+        throw std::runtime_error(std::string("input dim is different: ") + std::to_string(inp_w) + " vs " + std::to_string(input_dim));
     }
     _input = input;
+    _tmp = new Tensor<float>({output_dim, batch_size});
+    _res = new Tensor<float>({batch_size, output_dim});
 }
 
 Tensor<float>* LinearLayer::get_output()

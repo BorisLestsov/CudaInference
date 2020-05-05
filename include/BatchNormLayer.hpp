@@ -9,7 +9,7 @@
 
 class BatchNormLayer: public Layer {
 public:
-    BatchNormLayer(const std::string& path, int batch_size=1, int C=3);
+    BatchNormLayer(const std::string& path, int batch_size=1);
     ~BatchNormLayer();
 
     void forward();

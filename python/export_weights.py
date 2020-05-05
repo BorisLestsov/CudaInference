@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-import torchvision.models as models
+from myresnet import resnet18
 from collections import OrderedDict
 from sys import argv
 from operator import attrgetter
@@ -17,13 +17,13 @@ with torch.no_grad():
     ]))
 
 
-# model = models.resnet18(pretrained=True)
-# print(model)
+model = resnet18(pretrained=True)
+#print(model)
 if export:
     for modn, mod in model.named_modules():
         tensors = []
         print("CHECK", modn)
-        if 'bn' in modn:
+        if 'bn' in modn or 'downsample.1' in modn:
             tensors.append((modn+'.running_mean', mod.running_mean))
             tensors.append((modn+'.running_var', mod.running_var))
         tensors += [(modn+'.'+k, v) for k, v in mod.named_parameters()]
@@ -42,7 +42,7 @@ else:
 
 model.eval()
 
-inp = (np.arange(2*3*5*5).reshape(2, 3, 5, 5))
+inp = (np.arange(2*3*224*224).reshape(2, 3, 224, 224) % 10)
 
 with torch.no_grad():
     inp = torch.from_numpy(inp).float()
@@ -52,3 +52,4 @@ with torch.no_grad():
 for i, k in enumerate(res.reshape(-1)):
     print(i, k.item())
 
+print(res.shape)

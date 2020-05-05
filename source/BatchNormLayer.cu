@@ -14,9 +14,8 @@
 
 
 
-BatchNormLayer::BatchNormLayer(const std::string& w_path, int batch_size_p, int C_p):
-    batch_size(batch_size_p),
-    C(C_p)
+BatchNormLayer::BatchNormLayer(const std::string& w_path, int batch_size_p):
+    batch_size(batch_size_p)
 {
     std::vector<unsigned long> shape;
     std::vector<float> data;
@@ -72,8 +71,8 @@ void BatchNormLayer::forward()
     block_size = dim3(cell_size);
     grid_size = dim3(num_blocks_x);
 
-    batchnorm2d<<<block_size, grid_size>>>(_input->_ptr, _res->_ptr, _w->_ptr, _b->_ptr, _rm->_ptr, _rv->_ptr, C, Ho, Wo, batch_size);
-    debug_array(_res->_ptr, _res->count());
+    batchnorm2d<<<grid_size, block_size>>>(_input->_ptr, _res->_ptr, _w->_ptr, _b->_ptr, _rm->_ptr, _rv->_ptr, C, Ho, Wo, batch_size);
+    //debug_array(_res->_ptr, _res->count());
 
 }
 
@@ -90,10 +89,8 @@ void BatchNormLayer::set_input(Tensor<float>* input)
     Wi = isize[3];
     Ho = Hi;
     Wo = Wi;
+    C = isize[1];
 
-    if (input->size()[1] != C) {
-        throw std::runtime_error("wrong number of channels in BN");
-    }
 
     if (input->size()[0] != batch_size) {
         throw std::runtime_error("batch size does not match");

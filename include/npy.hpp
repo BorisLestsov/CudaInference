@@ -569,7 +569,7 @@ inline void LoadArrayFromNumpy(const std::string& filename, std::vector<unsigned
 {
     std::ifstream stream(filename, std::ifstream::binary);
     if(!stream) {
-        throw std::runtime_error("io error: failed to open a file.");
+        throw std::runtime_error(std::string("io error: failed to open a file: ") + filename);
     }
 
     std::string header_s = read_header(stream);

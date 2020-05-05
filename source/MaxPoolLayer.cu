@@ -88,8 +88,8 @@ void MaxPoolLayer::forward()
     block_size = dim3(cell_size);
     grid_size = dim3(num_blocks_x);
 
-    maxpool2d<<<block_size, grid_size>>>(_input->_ptr, _res->_ptr, H, W, C, Ho, Wo, Hi, Wi, batch_size, _stride, _pad);
-    debug_array(_res->_ptr, _res->count());
+    maxpool2d<<<grid_size, block_size>>>(_input->_ptr, _res->_ptr, H, W, C, Ho, Wo, Hi, Wi, batch_size, _stride, _pad);
+    //debug_array(_res->_ptr, _res->count());
 
 }
 

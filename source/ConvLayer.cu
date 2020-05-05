@@ -62,10 +62,10 @@ __global__ void make_imcol(float* im_ptr, float* res_ptr, int Nf, int Cf, int Hf
 
 
     bool is_pad = (hi < pad) || (wi < pad) || (hi >= Hi + pad) || (wi >= Wi + pad);
-    if (false){
-        printf("i=%d ; j=%d ; Ri=%d ; Rj=%d ; K_ind_i=%d ; K_ind_j=%d ; ci=%d ; hi=%d ; wi=%d ; ni=%d ; res=%d ; is_pad=%d\n", i, j, Ri, Rj, K_ind_i, K_ind_j, ci, hi, wi, ni, i*o_mat_stride + j, is_pad);
-        ;
-    }
+    // if (i == 1){
+    //     printf("i=%d ; j=%d ; Ri=%d ; Rj=%d ; K_ind_i=%d ; K_ind_j=%d ; ci=%d ; hi=%d ; wi=%d ; ni=%d ; res=%d ; is_pad=%d\n", i, j, Ri, Rj, K_ind_i, K_ind_j, ci, hi, wi, ni, i*o_mat_stride + j, is_pad);
+    //     ;
+    // }
 
     if (is_pad){
         res_ptr[i*o_mat_stride + j] = pad_val;
@@ -166,7 +166,7 @@ ConvLayer::ConvLayer(cublasHandle_t& cublas_handle, const std::string& w_path, i
         block_size = dim3(cell_size, cell_size);
         grid_size = dim3(num_blocks_x, num_blocks_y, 3);
 
-        make_wcol<<<block_size, grid_size>>>(_w->_ptr, _wcol->_ptr, N, C, H, W);
+        make_wcol<<<grid_size, block_size>>>(_w->_ptr, _wcol->_ptr, N, C, H, W);
     }
 }
 
@@ -189,7 +189,7 @@ void ConvLayer::forward()
     block_size = dim3(cell_size, cell_size);
     grid_size = dim3(num_blocks_x, num_blocks_y);
 
-    make_imcol<<<block_size, grid_size>>>(_input->_ptr, _imcol->_ptr, N, C, H, W, Ho, Wo, Hi, Wi, batch_size, _stride, _pad);
+    make_imcol<<<grid_size, block_size>>>(_input->_ptr, _imcol->_ptr, N, C, H, W, Ho, Wo, Hi, Wi, batch_size, _stride, _pad);
     //debug_array(_imcol->_ptr, _imcol->count());
 
 
@@ -199,13 +199,12 @@ void ConvLayer::forward()
     block_size = dim3(cell_size);
     grid_size = dim3(num_blocks_x);
     transpose_ker<<<grid_size, block_size>>>(_res->_ptr, _tmp->_ptr, _dims->_ptr, _strides->_ptr, _reorder->_ptr, _new_strides->_ptr);
-    _tmp->reshape({batch_size, N, Ho, Wo});
 
     if (_bias) {
         Tensor<float>::add_inplace(_tmp, _bcol);
     }
 
-    debug_array(_tmp->_ptr, _tmp->count());
+    //debug_array(_tmp->_ptr, _tmp->count());
 }
 
 
@@ -237,7 +236,7 @@ void ConvLayer::set_input(Tensor<float>* input)
 
     //_res = new Tensor<float>({batch_size, C, Ho, Wo});
     _res = new Tensor<float>({N, batch_size*Ho*Wo});
-    _tmp = new Tensor<float>({N, batch_size*Ho*Wo});
+    _tmp = new Tensor<float>({batch_size, N, Ho, Wo});
 
 
 

@@ -38,7 +38,8 @@ private:
 
 template<typename T>
 Tensor<T>::Tensor(Size size_p):
-    _size(size_p) 
+    _size(size_p),
+    _ndim(size_p.size())
 {
     _count = 1;
     for (int i = 0; i < _size.size(); ++i) {
@@ -94,6 +95,7 @@ Tensor<T>& Tensor<T>::reshape(const Size& newsize)
         throw std::runtime_error("reshape wrong size");
     }
     _size = newsize;
+    _count = newcount;
     _ndim = _size.size();
     return *this;
 }

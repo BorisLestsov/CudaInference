@@ -9,7 +9,7 @@
 
 class ReluLayer: public Layer {
 public:
-    ReluLayer(int el_size, int batch_size = 1);
+    ReluLayer(int batch_size = 1);
     ~ReluLayer();
 
     void forward();
@@ -19,7 +19,7 @@ public:
 
 private:
     Tensor<float>* _input, *_res;
-    int batch_size, el_size;
+    int batch_size;
 
 };
 

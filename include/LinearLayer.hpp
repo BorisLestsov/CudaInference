@@ -21,9 +21,9 @@ public:
     Tensor<float>* get_output();
     int get_output_dim();
 
+    int batch_size, input_dim, output_dim;
 private:
     Tensor<float>* _input, *_w, *_b, *_res, *_tmp;
-    int batch_size, input_dim, output_dim;
     cublasHandle_t& cublas_handle;
 
 };

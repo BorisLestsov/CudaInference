@@ -27,7 +27,7 @@ AvgPoolLayer::~AvgPoolLayer(){
 
 
 __global__ 
-void maxpool2d(float* src, float* res, int Hf, int Wf, int C, int Ho, int Wo, int Hi, int Wi, int batch_size, int stride, int pad, float pad_val=0)
+void avgpool2d(float* src, float* res, int Hf, int Wf, int C, int Ho, int Wo, int Hi, int Wi, int batch_size, int stride, int pad, float pad_val=0)
 {
     int i = blockIdx.x*blockDim.x + threadIdx.x;
     int i_mat_stride = C*Hi*Wi;
@@ -85,8 +85,8 @@ void AvgPoolLayer::forward()
     block_size = dim3(cell_size);
     grid_size = dim3(num_blocks_x);
 
-    maxpool2d<<<block_size, grid_size>>>(_input->_ptr, _res->_ptr, H, W, C, Ho, Wo, Hi, Wi, batch_size, _stride, _pad);
-    debug_array(_res->_ptr, _res->count());
+    avgpool2d<<<grid_size, block_size>>>(_input->_ptr, _res->_ptr, H, W, C, Ho, Wo, Hi, Wi, batch_size, _stride, _pad);
+    //debug_array(_res->_ptr, _res->count());
 
 }
 
