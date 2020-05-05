@@ -15,6 +15,7 @@
 #include "ConvLayer.hpp"
 #include "ReluLayer.hpp"
 #include "MaxPoolLayer.hpp"
+#include "BatchNormLayer.hpp"
 
 
 int main(int argc, const char** argv)
@@ -60,11 +61,11 @@ int main(int argc, const char** argv)
         Tensor<float>* output;
         input->from_cpu(float_data_ptr);
 
-        MaxPoolLayer* mp = new MaxPoolLayer(n, 4, 1, 2);
+        BatchNormLayer* bn = new BatchNormLayer("../python/weights/bn1", n, 3);
 
-        mp->set_input(input);
-        mp->forward();
-        output = mp->get_output();
+        bn->set_input(input);
+        bn->forward();
+        output = bn->get_output();
 
         float* cpu_result = (float*) malloc(output->count()*sizeof(float));
         output->to_cpu(cpu_result);
