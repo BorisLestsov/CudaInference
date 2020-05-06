@@ -32,7 +32,6 @@ mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Release .. 
 make -j
-./Release/cuda_proj --input ../images/cat.ppm --weights_dir ../python/weights/ --batch_size 16 --iters 100
 ```
 
 
