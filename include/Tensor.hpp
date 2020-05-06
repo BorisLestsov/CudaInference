@@ -32,9 +32,9 @@ public:
     T* _ptr;
 private:
 
+    Size _size;
     int _count;
     int _ndim;
-    Size _size;
 
 };
 

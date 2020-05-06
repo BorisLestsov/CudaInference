@@ -27,7 +27,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 
 else()
     set(CMAKE_BUILD_TYPE "Release")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -Wall -Werror")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -Wall")
     list(APPEND CUDA_NVCC_FLAGS
         "-O3;"
     )

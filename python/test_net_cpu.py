@@ -5,6 +5,8 @@ import torchvision.models as models
 import torchvision.transforms as transforms
 import time
 
+torch.set_num_threads(16)
+
 model = models.resnet18(pretrained=True)
 model.eval()
 
