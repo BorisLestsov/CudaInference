@@ -105,13 +105,40 @@ Tensor<T>* Tensor<T>::transpose(Tensor<T>* src, Tensor<T>* dst, const std::vecto
 }
 
 template<typename T>
-Tensor<T>* Tensor<T>::add_inplace(Tensor<T>* src1, const Tensor<T>* src2)
+Tensor<T>& Tensor<T>::operator+=(const Tensor<T>& src2)
 {
-    if (src1->count() != src2->count()){
+    if (this->count() != src2.count()){
         throw std::runtime_error("different size in Tensor::add_inplace");
     }
-    cuda_add(src1->_ptr, src2->_ptr, src1->_ptr, src1->count());
-    return src1;
+    cuda_add(this->_ptr, src2._ptr, this->_ptr, this->count());
+    return *this;
+}
+template<typename T>
+Tensor<T>& Tensor<T>::operator-=(const Tensor<T>& src2)
+{
+    if (this->count() != src2.count()){
+        throw std::runtime_error("different size in Tensor::sub_inplace");
+    }
+    cuda_sub(this->_ptr, src2._ptr, this->_ptr, this->count());
+    return *this;
+}
+template<typename T>
+Tensor<T>& Tensor<T>::operator*=(const Tensor<T>& src2)
+{
+    if (this->count() != src2.count()){
+        throw std::runtime_error("different size in Tensor::mul_inplace");
+    }
+    cuda_mul(this->_ptr, src2._ptr, this->_ptr, this->count());
+    return *this;
+}
+template<typename T>
+Tensor<T>& Tensor<T>::operator/=(const Tensor<T>& src2)
+{
+    if (this->count() != src2.count()){
+        throw std::runtime_error("different size in Tensor::div_inplace");
+    }
+    cuda_div(this->_ptr, src2._ptr, this->_ptr, this->count());
+    return *this;
 }
 
 template class Tensor<float>;

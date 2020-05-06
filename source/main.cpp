@@ -268,7 +268,7 @@ int main(int argc, const char** argv)
             layer1_0_relu1->forward();
             layer1_0_conv2->forward();
             layer1_0_bn2->forward();
-            Tensor<float>::add_inplace(layer1_0_bn2->get_output().get(), mp1->get_output().get());
+            *layer1_0_bn2->get_output() += *mp1->get_output();
             layer1_0_relu2->forward();
 
 
@@ -277,7 +277,7 @@ int main(int argc, const char** argv)
             layer1_1_relu1->forward();
             layer1_1_conv2->forward();
             layer1_1_bn2->forward();
-            Tensor<float>::add_inplace(layer1_1_bn2->get_output().get(), layer1_0_relu2->get_output().get());
+            *layer1_1_bn2->get_output() += *layer1_0_relu2->get_output();
             layer1_1_relu2->forward();
 
 
@@ -290,7 +290,7 @@ int main(int argc, const char** argv)
             layer2_0_bn2->forward();
             layer2_0_downsample_0_conv->forward();
             layer2_0_downsample_1_bn->forward();
-            Tensor<float>::add_inplace(layer2_0_bn2->get_output().get(), layer2_0_downsample_1_bn->get_output().get());
+            *layer2_0_bn2->get_output() += *layer2_0_downsample_1_bn->get_output();
             layer2_0_relu2->forward();
 
 
@@ -299,7 +299,7 @@ int main(int argc, const char** argv)
             layer2_1_relu1->forward();
             layer2_1_conv2->forward();
             layer2_1_bn2->forward();
-            Tensor<float>::add_inplace(layer2_1_bn2->get_output().get(), layer2_0_relu2->get_output().get());
+            *layer2_1_bn2->get_output() += *layer2_0_relu2->get_output();
             layer2_1_relu2->forward();
 
 
@@ -312,7 +312,7 @@ int main(int argc, const char** argv)
             layer3_0_bn2->forward();
             layer3_0_downsample_0_conv->forward();
             layer3_0_downsample_1_bn->forward();
-            Tensor<float>::add_inplace(layer3_0_bn2->get_output().get(), layer3_0_downsample_1_bn->get_output().get());
+            *layer3_0_bn2->get_output() += *layer3_0_downsample_1_bn->get_output();
             layer3_0_relu2->forward();
 
 
@@ -321,7 +321,7 @@ int main(int argc, const char** argv)
             layer3_1_relu1->forward();
             layer3_1_conv2->forward();
             layer3_1_bn2->forward();
-            Tensor<float>::add_inplace(layer3_1_bn2->get_output().get(), layer3_0_relu2->get_output().get());
+            *layer3_1_bn2->get_output() += *layer3_0_relu2->get_output();
             layer3_1_relu2->forward();
 
 
@@ -334,7 +334,7 @@ int main(int argc, const char** argv)
             layer4_0_bn2->forward();
             layer4_0_downsample_0_conv->forward();
             layer4_0_downsample_1_bn->forward();
-            Tensor<float>::add_inplace(layer4_0_bn2->get_output().get(), layer4_0_downsample_1_bn->get_output().get());
+            *layer4_0_bn2->get_output() += *layer4_0_downsample_1_bn->get_output();
             layer4_0_relu2->forward();
 
 
@@ -343,7 +343,7 @@ int main(int argc, const char** argv)
             layer4_1_relu1->forward();
             layer4_1_conv2->forward();
             layer4_1_bn2->forward();
-            Tensor<float>::add_inplace(layer4_1_bn2->get_output().get(), layer4_0_relu2->get_output().get());
+            *layer4_1_bn2->get_output() += *layer4_0_relu2->get_output();
             layer4_1_relu2->forward();
 
 

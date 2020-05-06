@@ -155,7 +155,7 @@ void ConvLayer::forward()
     Tensor<float>::transpose(_res.get(), _tmp.get(), {1, 0, 2, 3});
 
     if (_bias) {
-        Tensor<float>::add_inplace(_tmp.get(), _bcol.get());
+        *_tmp += *_bcol;
     }
 
     _res->reshape({N, batch_size*Ho*Wo});
