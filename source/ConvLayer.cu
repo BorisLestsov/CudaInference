@@ -61,39 +61,15 @@ __global__ void make_imcol(float* im_ptr, float* res_ptr, int Nf, int Cf, int Hf
 
     bool is_pad = (hi < pad) || (wi < pad) || (hi >= Hi + pad) || (wi >= Wi + pad);
 
-    if (is_pad){
+    if (!is_pad){
+        hi -= pad;
+        wi -= pad;
+        res_ptr[i*o_mat_stride + j] = im_ptr[ni*i_mat_stride + ci*Hi*Wi + hi*Wi + wi];
+    } else {
         res_ptr[i*o_mat_stride + j] = pad_val;
-        return;
     }
-    hi -= pad;
-    wi -= pad;
-    res_ptr[i*o_mat_stride + j] = im_ptr[ni*i_mat_stride + ci*Hi*Wi + hi*Wi + wi];
 }
 
-#define Ndims 4
-__global__ void transpose_ker(float* src_ptr, float* dst_ptr, int* src_dims, int* strides, int* reorder, int* new_strides){
-    int i = blockIdx.x*blockDim.x + threadIdx.x;
-    int total = strides[0] * src_dims[0];
-    if (i >= total){
-        return;
-    }
-
-    int new_idx[Ndims];
-    int acc = 0;
-    for (int k = 0; k < Ndims; ++k) {
-        int cur_i = (i - acc) / strides[k];
-        acc += cur_i*strides[k];
-
-        new_idx[reorder[k]] = cur_i;
-    }
-
-    int new_i = 0;
-    for (int k = 0; k < Ndims; ++k) {
-        new_i += new_strides[k]*new_idx[k];
-    }
-
-    dst_ptr[new_i] = src_ptr[i];
-}
 
 ConvLayer::ConvLayer(cublasHandle_t& cublas_handle, const std::string& w_path, int pad, int stride, bool bias):
     cublas_handle(cublas_handle),
@@ -174,15 +150,16 @@ void ConvLayer::forward()
 
 
     row_major_sgemm(cublas_handle, m, n, k, _wcol->_ptr, _imcol->_ptr, _res->_ptr, _tmp->_ptr);
+    _res->reshape({N, batch_size, Ho, Wo});
 
-    num_blocks_x = (N*n)/cell_size + ((N*n) % cell_size != 0);
-    block_size = dim3(cell_size);
-    grid_size = dim3(num_blocks_x);
-    transpose_ker<<<grid_size, block_size>>>(_res->_ptr, _tmp->_ptr, _dims->_ptr, _strides->_ptr, _reorder->_ptr, _new_strides->_ptr);
+    Tensor<float>::transpose(_res.get(), _tmp.get(), {1, 0, 2, 3});
 
     if (_bias) {
         Tensor<float>::add_inplace(_tmp.get(), _bcol.get());
     }
+
+    _res->reshape({N, batch_size*Ho*Wo});
+
 
     //debug_array(_tmp->_ptr, _tmp->count());
 }
@@ -211,24 +188,6 @@ void ConvLayer::set_input(std::shared_ptr<Tensor<float>> input)
     _res = std::shared_ptr<Tensor<float>>(new Tensor<float>({N, batch_size*Ho*Wo}));
     _tmp = std::shared_ptr<Tensor<float>>(new Tensor<float>({batch_size, N, Ho, Wo}));
 
-
-    // create arrays for reshape
-
-    Size dims_cpu({N, batch_size, Ho, Wo});
-    _dims = std::shared_ptr<Tensor<int>>(new Tensor<int>({4}));
-    _dims->from_cpu(dims_cpu.data());
-
-    Size strides_cpu({batch_size*Ho*Wo, Ho*Wo, Wo, 1});
-    _strides = std::shared_ptr<Tensor<int>>(new Tensor<int>({4}));
-    _strides->from_cpu(strides_cpu.data());
-
-    Size reorder_cpu({1, 0, 2, 3});
-    _reorder = std::shared_ptr<Tensor<int>>(new Tensor<int>({4}));
-    _reorder->from_cpu(reorder_cpu.data());
-
-    Size new_strides_cpu({N*Ho*Wo, Ho*Wo, Wo, 1});
-    _new_strides = std::shared_ptr<Tensor<int>>(new Tensor<int>({4}));
-    _new_strides->from_cpu(new_strides_cpu.data());
 
     if (_bias) {
         // bias array to add

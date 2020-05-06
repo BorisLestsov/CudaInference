@@ -24,7 +24,6 @@ public:
 private:
     std::shared_ptr<Tensor<float>> _input, _w, _b, _res;
     std::shared_ptr<Tensor<float>> _imcol, _wcol, _bcol, _tmp;
-    std::shared_ptr<Tensor<int>> _dims, _reorder, _strides, _new_strides;
     std::vector<float> data_b;
     int Hi;
     int Wi;
